@@ -4,7 +4,8 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -40,19 +41,31 @@ enum SlotStatus {
 }
 
 model Slot {
-  id         String     @id @default(cuid())
-  field      Field      @relation(fields: [fieldId], references: [id])
-  fieldId    String
-  date       DateTime   @db.Date
-  startTime  String     // "18:00"
-  endTime    String     // "19:00"
-  price      Int
-  status     SlotStatus @default(AVAILABLE)
+  id            String     @id @default(cuid())
+  field         Field      @relation(fields: [fieldId], references: [id])
+  fieldId       String
+  date          DateTime   @db.Date
+  startTime     String
+  endTime       String
+  price         Int
+  status        SlotStatus @default(AVAILABLE)
   holdExpiresAt DateTime?
-  booking    Booking?
-  createdAt  DateTime   @default(now())
+  bookingId     String?
+  booking       Booking?   @relation(fields: [bookingId], references: [id])
+  createdAt     DateTime   @default(now())
 
   @@unique([fieldId, date, startTime])
+}
+
+model Booking {
+  id         String        @id @default(cuid())
+  slots      Slot[]
+  userId     String
+  status     BookingStatus @default(PENDING_PAYMENT)
+  totalPrice Int
+  paymentRef String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 }
 
 enum BookingStatus {
@@ -60,16 +73,4 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   EXPIRED
-}
-
-model Booking {
-  id           String        @id @default(cuid())
-  slot         Slot          @relation(fields: [slotId], references: [id])
-  slotId       String        @unique
-  userId       String
-  status       BookingStatus @default(PENDING_PAYMENT)
-  totalPrice   Int
-  paymentRef   String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
 }
