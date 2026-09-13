@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Venue {
+  id        String  @id @default(cuid())
+  name      String
+  address   String
+  fields    Field[]
+  createdAt DateTime @default(now())
+}
+
+model Field {
+  id            String   @id @default(cuid())
+  venue         Venue    @relation(fields: [venueId], references: [id])
+  venueId       String
+  name          String   // e.g. "Field A", "Futsal Court"
+  sportType     String
+  openTime      String   // "06:00"
+  closeTime     String   // "23:00"
+  pricePerHour  Int      // store in smallest currency unit (paisa/poisha)
+  slots         Slot[]
+  createdAt     DateTime @default(now())
+}
+
+enum SlotStatus {
+  AVAILABLE
+  HOLD
+  BOOKED
+  BLOCKED
+}
+
+model Slot {
+  id         String     @id @default(cuid())
+  field      Field      @relation(fields: [fieldId], references: [id])
+  fieldId    String
+  date       DateTime   @db.Date
+  startTime  String     // "18:00"
+  endTime    String     // "19:00"
+  price      Int
+  status     SlotStatus @default(AVAILABLE)
+  holdExpiresAt DateTime?
+  booking    Booking?
+  createdAt  DateTime   @default(now())
+
+  @@unique([fieldId, date, startTime])
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+model Booking {
+  id           String        @id @default(cuid())
+  slot         Slot          @relation(fields: [slotId], references: [id])
+  slotId       String        @unique
+  userId       String
+  status       BookingStatus @default(PENDING_PAYMENT)
+  totalPrice   Int
+  paymentRef   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
